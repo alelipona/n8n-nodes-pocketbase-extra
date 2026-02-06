@@ -16,25 +16,41 @@ A custom PocketBase node for n8n with better error reporting, automatic type coe
 - Node.js `18+` recommended.
 - PocketBase `0.36.1+` recommended.
 
-## Install (Local n8n)
-This is a community node package. The typical flow is:
+## Install (Self-hosted n8n)
+This is a community node package. You can install it with the Raspberry Pi script or manually.
+
+### Raspberry Pi (systemd) install script
+1. Clone this repo on the Pi.
+2. Run the installer:
+```bash
+sudo ./install.sh
+```
+3. Ensure `N8N_CUSTOM_EXTENSIONS` is set to `/home/n8n/.n8n/custom` in your n8n service environment.
+4. Restart n8n.
+
+If your n8n service runs under a different user, set `N8N_USER` when running the script:
+```bash
+sudo N8N_USER=someuser ./install.sh
+```
+
+### Manual install
 1. Build the node.
 2. Configure n8n to load custom nodes.
 
-### Build
+#### Build
 ```bash
 npm install
 npm run build
 ```
 
-### Load in n8n (self-hosted)
+#### Load in n8n (self-hosted)
 1. Copy or link this folder to your n8n custom nodes directory.
 2. Set the `N8N_CUSTOM_EXTENSIONS` environment variable to that directory.
 3. Restart n8n.
 
 Example:
 ```bash
-export N8N_CUSTOM_EXTENSIONS=/path/to/custom-nodes
+export N8N_CUSTOM_EXTENSIONS=~/.n8n/custom
 ```
 
 Place or symlink this repo inside that directory so the package is discoverable by n8n.
