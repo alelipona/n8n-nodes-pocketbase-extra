@@ -8,14 +8,8 @@ export class PocketBaseApi implements ICredentialType {
   test: ICredentialTestRequest = {
     request: {
       baseURL: '={{$credentials.baseUrl}}',
-      method:
-        '={{$credentials.authType === "admin" || $credentials.authType === "collection" ? "POST" : "GET"}}',
-      url:
-        '={{$credentials.authType === "admin" ? "/api/collections/_superusers/auth-with-password" : $credentials.authType === "collection" ? "/api/collections/" + $credentials.authCollection + "/auth-with-password" : $credentials.authType === "token" ? "/api/collections" : "/api/health"}}',
-      headers:
-        '={{$credentials.authType === "token" ? { Authorization: "Bearer " + $credentials.apiToken } : {}}}',
-      body:
-        '={{$credentials.authType === "admin" ? { identity: $credentials.adminEmail, email: $credentials.adminEmail, password: $credentials.adminPassword } : $credentials.authType === "collection" ? { identity: $credentials.identity, password: $credentials.password } : {}}}',
+      method: 'GET',
+      url: '/api/health',
       json: true,
     } as unknown as ICredentialTestRequest['request'],
     rules: [
