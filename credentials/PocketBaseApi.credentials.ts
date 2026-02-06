@@ -1,4 +1,5 @@
 import type {
+  Icon,
   ICredentialDataDecryptedObject,
   ICredentialTestRequest,
   ICredentialType,
@@ -10,6 +11,7 @@ export class PocketBaseApi implements ICredentialType {
   name = 'pocketBaseApi';
   displayName = 'PocketBase API';
   documentationUrl = 'https://pocketbase.io/docs/';
+  icon = 'file:pocketbase.svg' as Icon;
 
   authenticate = async (
     credentials: ICredentialDataDecryptedObject,
