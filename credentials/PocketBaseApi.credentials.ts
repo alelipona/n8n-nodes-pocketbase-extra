@@ -1,16 +1,42 @@
-import type { ICredentialTestRequest, ICredentialType, INodeProperties } from 'n8n-workflow';
+import type {
+  ICredentialDataDecryptedObject,
+  ICredentialTestRequest,
+  ICredentialType,
+  IHttpRequestOptions,
+  INodeProperties,
+} from 'n8n-workflow';
 
 export class PocketBaseApi implements ICredentialType {
   name = 'pocketBaseApi';
   displayName = 'PocketBase API';
   documentationUrl = 'https://pocketbase.io/docs/';
 
+  authenticate = async (
+    credentials: ICredentialDataDecryptedObject,
+    requestOptions: IHttpRequestOptions,
+  ): Promise<IHttpRequestOptions> => {
+    const logEnabled =
+      process.env.POCKETBASE_DEBUG_TEST === 'true' || process.env.N8N_LOG_LEVEL === 'debug';
+    if (logEnabled) {
+      const method = requestOptions.method ?? 'GET';
+      const url = (requestOptions as IHttpRequestOptions & { url?: string }).url ?? '';
+      const baseURL = (requestOptions as IHttpRequestOptions & { baseURL?: string }).baseURL ?? '';
+      const authType = credentials.authType ?? 'unknown';
+      // Avoid logging secrets. This is only for credential test debugging.
+      // eslint-disable-next-line no-console
+      console.log(
+        `[PocketBaseApiTest] method=${method} url=${url} baseURL=${baseURL} authType=${authType}`,
+      );
+    }
+    return requestOptions;
+  };
+
   test: ICredentialTestRequest = {
     request: {
       method:
         '={{$credentials.authType === "admin" || $credentials.authType === "collection" ? "POST" : "GET"}}',
       url:
-        '={{$credentials.authType === "admin" ? $credentials.baseUrl + "/api/collections/_superusers/auth-with-password" : $credentials.authType === "collection" ? $credentials.baseUrl + "/api/collections/" + $credentials.authCollection + "/auth-with-password" : $credentials.authType === "token" ? $credentials.baseUrl + "/api/collections" : $credentials.baseUrl + "/api/health"}}',
+        '={{$credentials.authType === "admin" ? ($credentials.baseUrl || "").replace(/\\/+$/, "").replace(/\\/api$/, "") + "/api/collections/_superusers/auth-with-password" : $credentials.authType === "collection" ? ($credentials.baseUrl || "").replace(/\\/+$/, "").replace(/\\/api$/, "") + "/api/collections/" + $credentials.authCollection + "/auth-with-password" : $credentials.authType === "token" ? ($credentials.baseUrl || "").replace(/\\/+$/, "").replace(/\\/api$/, "") + "/api/collections" : ($credentials.baseUrl || "").replace(/\\/+$/, "").replace(/\\/api$/, "") + "/api/health"}}',
       headers: {
         Authorization:
           '={{$credentials.authType === "token" ? "Bearer " + $credentials.apiToken : undefined}}',
