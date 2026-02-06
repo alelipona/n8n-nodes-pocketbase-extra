@@ -1,5 +1,5 @@
 {
-  "name": "n8n-nodes-pocketbase",
+  "name": "@sleeper/n8n-nodes-pocketbase",
   "version": "0.1.0",
   "description": "PocketBase node for n8n with better errors and type handling",
   "license": "MIT",
