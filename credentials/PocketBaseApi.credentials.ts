@@ -9,11 +9,11 @@ export class PocketBaseApi implements ICredentialType {
     request: {
       baseURL: '={{$credentials.baseUrl}}',
       method:
-        '={{["admin","collection"].includes($credentials.authType) ? "POST" : "GET"}}',
+        '={{$credentials.authType === "admin" || $credentials.authType === "collection" ? "POST" : "GET"}}',
       url:
-        '={{$credentials.authType === "admin" ? "/api/collections/_superusers/auth-with-password" : $credentials.authType === "collection" ? `/api/collections/${$credentials.authCollection}/auth-with-password` : $credentials.authType === "token" ? "/api/collections" : "/api/health"}}',
+        '={{$credentials.authType === "admin" ? "/api/collections/_superusers/auth-with-password" : $credentials.authType === "collection" ? "/api/collections/" + $credentials.authCollection + "/auth-with-password" : $credentials.authType === "token" ? "/api/collections" : "/api/health"}}',
       headers:
-        '={{$credentials.authType === "token" ? { Authorization: `Bearer ${$credentials.apiToken}` } : {}}}',
+        '={{$credentials.authType === "token" ? { Authorization: "Bearer " + $credentials.apiToken } : {}}}',
       body:
         '={{$credentials.authType === "admin" ? { identity: $credentials.adminEmail, email: $credentials.adminEmail, password: $credentials.adminPassword } : $credentials.authType === "collection" ? { identity: $credentials.identity, password: $credentials.password } : {}}}',
       json: true,
