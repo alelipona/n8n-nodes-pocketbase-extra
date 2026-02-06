@@ -45,8 +45,22 @@ function getStatusCode(error: unknown): number | undefined {
   const obj = error as Record<string, unknown>;
   const response = obj.response as Record<string, unknown> | undefined;
   const cause = obj.cause as Record<string, unknown> | undefined;
-  const statusCode = obj.statusCode ?? response?.statusCode ?? cause?.statusCode;
-  return typeof statusCode === 'number' ? statusCode : undefined;
+  const statusCode =
+    obj.statusCode ??
+    obj.httpCode ??
+    obj.status ??
+    response?.statusCode ??
+    response?.httpCode ??
+    response?.status ??
+    cause?.statusCode ??
+    cause?.httpCode ??
+    cause?.status;
+  if (typeof statusCode === 'number') return statusCode;
+  if (typeof statusCode === 'string') {
+    const parsed = Number.parseInt(statusCode, 10);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
 }
 
 function isNotFoundError(error: unknown): boolean {
