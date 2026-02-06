@@ -40,12 +40,17 @@ function mapFieldsUi(fieldsUi: IDataObject): IDataObject {
   return output;
 }
 
+function getStatusCode(error: unknown): number | undefined {
+  if (!error || typeof error !== 'object') return undefined;
+  const obj = error as Record<string, unknown>;
+  const response = obj.response as Record<string, unknown> | undefined;
+  const cause = obj.cause as Record<string, unknown> | undefined;
+  const statusCode = obj.statusCode ?? response?.statusCode ?? cause?.statusCode;
+  return typeof statusCode === 'number' ? statusCode : undefined;
+}
+
 function isNotFoundError(error: unknown): boolean {
-  const statusCode =
-    (error as IDataObject)?.statusCode ??
-    (error as IDataObject)?.response?.statusCode ??
-    (error as IDataObject)?.cause?.statusCode;
-  return statusCode === 404;
+  return getStatusCode(error) === 404;
 }
 
 export class PocketBase implements INodeType {

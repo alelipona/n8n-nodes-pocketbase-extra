@@ -139,4 +139,34 @@ describe('GenericFunctions', () => {
     const token = await getAuthToken.call(context);
     expect(token).toBe('abc123');
   });
+
+  test('getAuthToken falls back to superusers on 404', async () => {
+    const httpRequest = jest
+      .fn()
+      .mockRejectedValueOnce({ statusCode: 404 })
+      .mockResolvedValueOnce({ token: 'super-token' });
+
+    const context = mockThis({
+      getCredentials: jest.fn(async () => ({
+        baseUrl: 'http://127.0.0.1:8090',
+        authType: 'admin',
+        adminEmail: 'admin@example.com',
+        adminPassword: 'secret',
+      })) as unknown as IExecuteFunctions['getCredentials'],
+      helpers: { httpRequest } as unknown as IExecuteFunctions['helpers'],
+    });
+
+    const token = await getAuthToken.call(context);
+
+    expect(token).toBe('super-token');
+    expect(httpRequest).toHaveBeenCalledTimes(2);
+    const firstCall = httpRequest.mock.calls[0][0] as IHttpRequestOptions;
+    const secondCall = httpRequest.mock.calls[1][0] as IHttpRequestOptions;
+    expect(firstCall.url).toContain('/api/admins/auth-with-password');
+    expect(secondCall.url).toContain('/api/collections/_superusers/auth-with-password');
+    expect(secondCall.body).toEqual({
+      identity: 'admin@example.com',
+      password: 'secret',
+    });
+  });
 });
