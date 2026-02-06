@@ -40,6 +40,14 @@ function mapFieldsUi(fieldsUi: IDataObject): IDataObject {
   return output;
 }
 
+function isNotFoundError(error: unknown): boolean {
+  const statusCode =
+    (error as IDataObject)?.statusCode ??
+    (error as IDataObject)?.response?.statusCode ??
+    (error as IDataObject)?.cause?.statusCode;
+  return statusCode === 404;
+}
+
 export class PocketBase implements INodeType {
   methods = {
     loadOptions: {
@@ -55,7 +63,11 @@ export class PocketBase implements INodeType {
         const authType = credentials.authType as string;
         let token: string | undefined;
 
-        const requestToken = async (endpoint: string, body: IDataObject) => {
+        const requestToken = async (
+          endpoint: string,
+          body: IDataObject,
+          wrapError = true,
+        ): Promise<string | undefined> => {
           try {
             const response = await this.helpers.httpRequest({
               method: 'POST',
@@ -65,6 +77,9 @@ export class PocketBase implements INodeType {
             });
             return response?.token as string | undefined;
           } catch (error) {
+            if (!wrapError) {
+              throw error;
+            }
             throw new NodeApiError(this.getNode(), error as unknown as JsonObject, {
               message: 'Failed to authenticate while loading collections.',
             });
@@ -74,10 +89,26 @@ export class PocketBase implements INodeType {
         if (authType === 'token') {
           token = credentials.apiToken as string | undefined;
         } else if (authType === 'admin') {
-          token = await requestToken('/api/admins/auth-with-password', {
-            email: credentials.adminEmail,
-            password: credentials.adminPassword,
-          });
+          try {
+            token = await requestToken(
+              '/api/admins/auth-with-password',
+              {
+                email: credentials.adminEmail,
+                password: credentials.adminPassword,
+              },
+              false,
+            );
+          } catch (error) {
+            if (!isNotFoundError(error)) {
+              throw new NodeApiError(this.getNode(), error as unknown as JsonObject, {
+                message: 'Failed to authenticate while loading collections.',
+              });
+            }
+            token = await requestToken('/api/collections/_superusers/auth-with-password', {
+              identity: credentials.adminEmail,
+              password: credentials.adminPassword,
+            });
+          }
         } else if (authType === 'collection') {
           token = await requestToken(`/api/collections/${credentials.authCollection}/auth-with-password`, {
             identity: credentials.identity,
