@@ -7,9 +7,8 @@ export class PocketBaseApi implements ICredentialType {
 
   test: ICredentialTestRequest = {
     request: {
-      baseURL: '=$credentials.baseUrl',
       method: 'GET',
-      url: '/api/health',
+      url: '=$credentials.baseUrl + "/api/health"',
       json: true,
     } as unknown as ICredentialTestRequest['request'],
     rules: [
