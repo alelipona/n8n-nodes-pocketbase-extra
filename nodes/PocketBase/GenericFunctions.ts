@@ -1,6 +1,14 @@
 import type { IDataObject, IExecuteFunctions, IHttpRequestOptions, JsonObject } from 'n8n-workflow';
 import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
+export interface PocketBaseErrorInfo {
+  message: string;
+  code?: number | string;
+  statusCode?: number;
+  fieldErrors: string[];
+  raw: IDataObject;
+}
+
 const SENSITIVE_KEYS = new Set([
   'password',
   'adminPassword',
@@ -213,7 +221,7 @@ export async function pocketBaseRequest(
   endpoint: string,
   body?: IDataObject,
   qs?: IDataObject,
-  extraOptions: (Partial<IHttpRequestOptions> & { skipAuth?: boolean }) = {},
+  extraOptions: (Partial<IHttpRequestOptions> & { skipAuth?: boolean; formData?: IDataObject }) = {},
 ): Promise<IDataObject> {
   const credentials = await this.getCredentials('pocketBaseApi');
   const baseUrl = normalizeBaseUrl(credentials.baseUrl as string);
@@ -252,7 +260,7 @@ export async function pocketBaseRequest(
   }
 }
 
-export function extractPocketBaseError(error: IDataObject): IDataObject {
+export function extractPocketBaseError(error: IDataObject): PocketBaseErrorInfo {
   const response = (error.response ?? error) as IDataObject;
   const body = (response.body ?? response.data ?? error.body ?? error) as IDataObject;
   const statusCode = (response.statusCode ?? response.status ?? error.statusCode) as number | undefined;
