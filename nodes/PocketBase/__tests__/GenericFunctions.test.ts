@@ -140,11 +140,11 @@ describe('GenericFunctions', () => {
     expect(token).toBe('abc123');
   });
 
-  test('getAuthToken falls back to superusers on 404', async () => {
+  test('getAuthToken falls back to admins on 404', async () => {
     const httpRequest = jest
       .fn()
       .mockRejectedValueOnce({ statusCode: 404 })
-      .mockResolvedValueOnce({ token: 'super-token' });
+      .mockResolvedValueOnce({ token: 'admin-token' });
 
     const context = mockThis({
       getCredentials: jest.fn(async () => ({
@@ -158,14 +158,14 @@ describe('GenericFunctions', () => {
 
     const token = await getAuthToken.call(context);
 
-    expect(token).toBe('super-token');
+    expect(token).toBe('admin-token');
     expect(httpRequest).toHaveBeenCalledTimes(2);
     const firstCall = httpRequest.mock.calls[0][0] as IHttpRequestOptions;
     const secondCall = httpRequest.mock.calls[1][0] as IHttpRequestOptions;
-    expect(firstCall.url).toContain('/api/admins/auth-with-password');
-    expect(secondCall.url).toContain('/api/collections/_superusers/auth-with-password');
+    expect(firstCall.url).toContain('/api/collections/_superusers/auth-with-password');
+    expect(secondCall.url).toContain('/api/admins/auth-with-password');
     expect(secondCall.body).toEqual({
-      identity: 'admin@example.com',
+      email: 'admin@example.com',
       password: 'secret',
     });
   });
@@ -174,7 +174,7 @@ describe('GenericFunctions', () => {
     const httpRequest = jest
       .fn()
       .mockRejectedValueOnce({ statusCode: '404' })
-      .mockResolvedValueOnce({ token: 'super-token' });
+      .mockResolvedValueOnce({ token: 'admin-token' });
 
     const context = mockThis({
       getCredentials: jest.fn(async () => ({
@@ -187,7 +187,7 @@ describe('GenericFunctions', () => {
     });
 
     const token = await getAuthToken.call(context);
-    expect(token).toBe('super-token');
+    expect(token).toBe('admin-token');
     expect(httpRequest).toHaveBeenCalledTimes(2);
   });
 });

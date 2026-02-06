@@ -197,11 +197,11 @@ export async function getAuthToken(this: IExecuteFunctions): Promise<string | nu
   let endpoint = '';
   let body: IDataObject = {};
   if (authType === 'admin') {
-    endpoint = '/api/admins/auth-with-password';
     body = {
       email: credentials.adminEmail,
       password: credentials.adminPassword,
     };
+    endpoint = '/api/admins/auth-with-password';
   } else if (authType === 'collection') {
     endpoint = `/api/collections/${credentials.authCollection}/auth-with-password`;
     body = {
@@ -212,37 +212,47 @@ export async function getAuthToken(this: IExecuteFunctions): Promise<string | nu
     return null;
   }
 
-  let response: IDataObject;
+  let response: IDataObject | undefined;
   if (authType === 'admin') {
+    const adminBody = body;
     const superuserBody: IDataObject = {
       identity: credentials.adminEmail,
       password: credentials.adminPassword,
     };
-    try {
-      response = await this.helpers.httpRequest({
-        method: 'POST',
-        url: buildUrl(baseUrl, endpoint),
-        json: true,
-        body,
-      });
-    } catch (error) {
-      if (!isNotFoundError(error)) {
-        throw new NodeApiError(this.getNode(), error as unknown as JsonObject, {
-          message: 'PocketBase authentication failed',
-        });
-      }
+    const attempts = [
+      {
+        endpoint: '/api/collections/_superusers/auth-with-password',
+        body: superuserBody,
+      },
+      {
+        endpoint: '/api/admins/auth-with-password',
+        body: adminBody,
+      },
+    ];
+    let lastError: unknown;
+    for (const attempt of attempts) {
       try {
         response = await this.helpers.httpRequest({
           method: 'POST',
-          url: buildUrl(baseUrl, '/api/collections/_superusers/auth-with-password'),
+          url: buildUrl(baseUrl, attempt.endpoint),
           json: true,
-          body: superuserBody,
+          body: attempt.body,
         });
-      } catch (fallbackError) {
-        throw new NodeApiError(this.getNode(), fallbackError as unknown as JsonObject, {
-          message: 'PocketBase authentication failed',
-        });
+        break;
+      } catch (error) {
+        lastError = error;
+        const statusCode = getStatusCode(error);
+        if (statusCode && ![404, 405, 410].includes(statusCode)) {
+          throw new NodeApiError(this.getNode(), error as unknown as JsonObject, {
+            message: `PocketBase authentication failed (status ${statusCode}).`,
+          });
+        }
       }
+    }
+    if (!response) {
+      throw new NodeApiError(this.getNode(), lastError as unknown as JsonObject, {
+        message: 'PocketBase authentication failed.',
+      });
     }
   } else {
     try {
@@ -253,10 +263,18 @@ export async function getAuthToken(this: IExecuteFunctions): Promise<string | nu
         body,
       });
     } catch (error) {
+      const statusCode = getStatusCode(error);
+      const message = statusCode
+        ? `PocketBase authentication failed (status ${statusCode}).`
+        : 'PocketBase authentication failed.';
       throw new NodeApiError(this.getNode(), error as unknown as JsonObject, {
-        message: 'PocketBase authentication failed',
+        message,
       });
     }
+  }
+
+  if (!response) {
+    throw new NodeOperationError(this.getNode(), 'PocketBase authentication failed.');
   }
 
   const token = response.token as string | undefined;

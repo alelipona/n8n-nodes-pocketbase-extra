@@ -85,54 +85,70 @@ export class PocketBase implements INodeType {
         const requestToken = async (
           endpoint: string,
           body: IDataObject,
-          wrapError = true,
         ): Promise<string | undefined> => {
-          try {
-            const response = await this.helpers.httpRequest({
-              method: 'POST',
-              url: buildUrl(baseUrl, endpoint),
-              json: true,
-              body,
-            });
-            return response?.token as string | undefined;
-          } catch (error) {
-            if (!wrapError) {
-              throw error;
-            }
-            throw new NodeApiError(this.getNode(), error as unknown as JsonObject, {
-              message: 'Failed to authenticate while loading collections.',
-            });
-          }
+          const response = await this.helpers.httpRequest({
+            method: 'POST',
+            url: buildUrl(baseUrl, endpoint),
+            json: true,
+            body,
+          });
+          return response?.token as string | undefined;
         };
 
         if (authType === 'token') {
           token = credentials.apiToken as string | undefined;
         } else if (authType === 'admin') {
-          try {
-            token = await requestToken(
-              '/api/admins/auth-with-password',
-              {
+          const attempts = [
+            {
+              endpoint: '/api/collections/_superusers/auth-with-password',
+              body: {
+                identity: credentials.adminEmail,
+                password: credentials.adminPassword,
+              },
+            },
+            {
+              endpoint: '/api/admins/auth-with-password',
+              body: {
                 email: credentials.adminEmail,
                 password: credentials.adminPassword,
               },
-              false,
-            );
-          } catch (error) {
-            if (!isNotFoundError(error)) {
-              throw new NodeApiError(this.getNode(), error as unknown as JsonObject, {
-                message: 'Failed to authenticate while loading collections.',
-              });
+            },
+          ];
+          let lastError: unknown;
+          for (const attempt of attempts) {
+            try {
+              token = await requestToken(attempt.endpoint, attempt.body);
+              if (token) break;
+            } catch (error) {
+              lastError = error;
+              const statusCode = getStatusCode(error);
+              if (statusCode && ![404, 405, 410].includes(statusCode)) {
+                throw new NodeApiError(this.getNode(), error as unknown as JsonObject, {
+                  message: `Failed to authenticate while loading collections (status ${statusCode}).`,
+                });
+              }
             }
-            token = await requestToken('/api/collections/_superusers/auth-with-password', {
-              identity: credentials.adminEmail,
-              password: credentials.adminPassword,
+          }
+          if (!token) {
+            throw new NodeApiError(this.getNode(), lastError as unknown as JsonObject, {
+              message: 'Failed to authenticate while loading collections.',
             });
           }
         } else if (authType === 'collection') {
-          token = await requestToken(`/api/collections/${credentials.authCollection}/auth-with-password`, {
-            identity: credentials.identity,
-            password: credentials.password,
-          });
+          try {
+            token = await requestToken(`/api/collections/${credentials.authCollection}/auth-with-password`, {
+              identity: credentials.identity,
+              password: credentials.password,
+            });
+          } catch (error) {
+            const statusCode = getStatusCode(error);
+            const message = statusCode
+              ? `Failed to authenticate while loading collections (status ${statusCode}).`
+              : 'Failed to authenticate while loading collections.';
+            throw new NodeApiError(this.getNode(), error as unknown as JsonObject, {
+              message,
+            });
+          }
         }
 
         const headers: IDataObject = token ? { Authorization: `Bearer ${token}` } : {};
