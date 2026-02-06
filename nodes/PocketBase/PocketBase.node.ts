@@ -1,8 +1,12 @@
 import type {
   IDataObject,
+  ICredentialDataDecryptedObject,
+  ICredentialTestFunctions,
+  ICredentialsDecrypted,
   IExecuteFunctions,
   ILoadOptionsFunctions,
   INodeExecutionData,
+  INodeCredentialTestResult,
   INodePropertyOptions,
   INodeType,
   INodeTypeDescription,
@@ -192,6 +196,126 @@ export class PocketBase implements INodeType {
         }
       },
     },
+    credentialTest: {
+      async pocketBaseApiTest(
+        this: ICredentialTestFunctions,
+        credential: ICredentialsDecrypted<ICredentialDataDecryptedObject>,
+      ): Promise<INodeCredentialTestResult> {
+        const data = credential.data ?? {};
+        const baseUrlRaw = data.baseUrl as string | undefined;
+        if (!baseUrlRaw) {
+          return { status: 'Error', message: 'Base URL is required.' };
+        }
+
+        const baseUrl = normalizeBaseUrl(String(baseUrlRaw));
+        const authType = (data.authType as string | undefined) ?? 'admin';
+
+        const request = async (options: IDataObject) =>
+          this.helpers.request({
+            json: true,
+            ...options,
+          });
+
+        const ok = (): INodeCredentialTestResult => ({
+          status: 'OK',
+          message: 'Connection successful.',
+        });
+        const fail = (message: string): INodeCredentialTestResult => ({
+          status: 'Error',
+          message,
+        });
+
+        try {
+          if (authType === 'none') {
+            await request({
+              method: 'GET',
+              url: buildUrl(baseUrl, '/api/health'),
+            });
+            return ok();
+          }
+
+          if (authType === 'token') {
+            const apiToken = data.apiToken as string | undefined;
+            if (!apiToken) return fail('API token is required.');
+            await request({
+              method: 'GET',
+              url: buildUrl(baseUrl, '/api/collections'),
+              headers: { Authorization: `Bearer ${apiToken}` },
+            });
+            return ok();
+          }
+
+          if (authType === 'collection') {
+            const collection = data.authCollection as string | undefined;
+            const identity = data.identity as string | undefined;
+            const password = data.password as string | undefined;
+            if (!collection || !identity || !password) {
+              return fail('Collection credentials are incomplete.');
+            }
+            const response = (await request({
+              method: 'POST',
+              url: buildUrl(baseUrl, `/api/collections/${collection}/auth-with-password`),
+              body: {
+                identity,
+                password,
+              },
+            })) as IDataObject;
+            if (!response?.token) {
+              return fail('PocketBase authentication response did not include a token.');
+            }
+            return ok();
+          }
+
+          const adminEmail = data.adminEmail as string | undefined;
+          const adminPassword = data.adminPassword as string | undefined;
+          if (!adminEmail || !adminPassword) {
+            return fail('Admin credentials are incomplete.');
+          }
+
+          const attempts = [
+            {
+              endpoint: '/api/collections/_superusers/auth-with-password',
+              body: { identity: adminEmail, password: adminPassword },
+            },
+            {
+              endpoint: '/api/admins/auth-with-password',
+              body: { email: adminEmail, password: adminPassword },
+            },
+          ];
+
+          let lastError: unknown;
+          for (const attempt of attempts) {
+            try {
+              const response = (await request({
+                method: 'POST',
+                url: buildUrl(baseUrl, attempt.endpoint),
+                body: attempt.body,
+              })) as IDataObject;
+              if (!response?.token) {
+                return fail('PocketBase authentication response did not include a token.');
+              }
+              return ok();
+            } catch (error) {
+              lastError = error;
+              const statusCode = getStatusCode(error);
+              if (statusCode && ![404, 405, 410].includes(statusCode)) {
+                return fail(`PocketBase authentication failed (status ${statusCode}).`);
+              }
+            }
+          }
+
+          return fail(
+            lastError ? 'PocketBase authentication failed.' : 'PocketBase authentication failed (no response).',
+          );
+        } catch (error) {
+          const statusCode = getStatusCode(error);
+          if (statusCode) {
+            return fail(`PocketBase authentication failed (status ${statusCode}).`);
+          }
+          return fail('Could not connect to PocketBase.');
+        }
+      },
+    },
   };
 
   description: INodeTypeDescription = {
@@ -210,6 +334,7 @@ export class PocketBase implements INodeType {
       {
         name: 'pocketBaseApi',
         required: true,
+        testedBy: 'pocketBaseApiTest',
       },
     ],
     properties: [

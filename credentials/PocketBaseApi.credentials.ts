@@ -1,27 +1,9 @@
-import type { ICredentialTestRequest, ICredentialType, INodeProperties } from 'n8n-workflow';
+import type { ICredentialType, INodeProperties } from 'n8n-workflow';
 
 export class PocketBaseApi implements ICredentialType {
   name = 'pocketBaseApi';
   displayName = 'PocketBase API';
   documentationUrl = 'https://pocketbase.io/docs/';
-
-  test: ICredentialTestRequest = {
-    request: {
-      baseURL: '={{$credentials.baseUrl}}',
-      method: 'GET',
-      url: '/api/health',
-      json: true,
-    } as unknown as ICredentialTestRequest['request'],
-    rules: [
-      {
-        type: 'responseCode',
-        properties: {
-          value: 200,
-          message: 'Connection successful.',
-        },
-      },
-    ],
-  };
 
   properties: INodeProperties[] = [
     {
