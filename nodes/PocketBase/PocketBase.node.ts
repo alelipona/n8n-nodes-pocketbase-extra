@@ -463,7 +463,6 @@ export class PocketBase implements INodeType {
           },
         ],
       },
-      {
       // Auth parameters
       {
         displayName: 'Admin Email',
