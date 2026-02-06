@@ -64,7 +64,9 @@ The node supports four credential modes:
 
 ## Record Operations
 ### Create / Update
-- Use `Fields (JSON)` to set fields. Objects/arrays are accepted directly.
+- Select a collection from the auto-populated list (or type a name/ID).
+- `Body Type: Fields` uses a UI list of field/value entries.
+- `Body Type: JSON` accepts a raw object payload (objects/arrays accepted).
 - Enable `Coerce Types` to auto-convert strings like `"true"`, `"123"`, `"{...}"`, and `"null"`.
 
 ### List with Filter

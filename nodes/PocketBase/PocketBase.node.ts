@@ -1,22 +1,133 @@
 import type {
   IDataObject,
   IExecuteFunctions,
+  ILoadOptionsFunctions,
   INodeExecutionData,
+  INodePropertyOptions,
   INodeType,
   INodeTypeDescription,
+  JsonObject,
 } from 'n8n-workflow';
 import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 import {
   attachMeta,
   buildDebugInfo,
   buildFormData,
+  buildUrl,
   extractPocketBaseError,
   getAuthToken,
   normalizeFields,
+  normalizeBaseUrl,
   pocketBaseRequest,
 } from './GenericFunctions';
 
+function mapFieldsUi(fieldsUi: IDataObject): IDataObject {
+  const output: IDataObject = {};
+  const assignments = (fieldsUi.assignments as IDataObject[]) ?? [];
+  for (const entry of assignments) {
+    const name = entry.name as string;
+    if (!name) continue;
+    output[name] = entry.value as IDataObject;
+  }
+  if (assignments.length === 0) {
+    const entries = (fieldsUi.field as IDataObject[]) ?? [];
+    for (const entry of entries) {
+      const name = entry.name as string;
+      if (!name) continue;
+      output[name] = entry.value as IDataObject;
+    }
+  }
+  return output;
+}
+
 export class PocketBase implements INodeType {
+  methods = {
+    loadOptions: {
+      async getCollections(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+        let credentials: IDataObject;
+        try {
+          credentials = await this.getCredentials('pocketBaseApi');
+        } catch (error) {
+          return [];
+        }
+
+        const baseUrl = normalizeBaseUrl(credentials.baseUrl as string);
+        const authType = credentials.authType as string;
+        let token: string | undefined;
+
+        const requestToken = async (endpoint: string, body: IDataObject) => {
+          try {
+            const response = await this.helpers.httpRequest({
+              method: 'POST',
+              url: buildUrl(baseUrl, endpoint),
+              json: true,
+              body,
+            });
+            return response?.token as string | undefined;
+          } catch (error) {
+            throw new NodeApiError(this.getNode(), error as unknown as JsonObject, {
+              message: 'Failed to authenticate while loading collections.',
+            });
+          }
+        };
+
+        if (authType === 'token') {
+          token = credentials.apiToken as string | undefined;
+        } else if (authType === 'admin') {
+          token = await requestToken('/api/admins/auth-with-password', {
+            email: credentials.adminEmail,
+            password: credentials.adminPassword,
+          });
+        } else if (authType === 'collection') {
+          token = await requestToken(`/api/collections/${credentials.authCollection}/auth-with-password`, {
+            identity: credentials.identity,
+            password: credentials.password,
+          });
+        }
+
+        const headers: IDataObject = token ? { Authorization: `Bearer ${token}` } : {};
+        const options: INodePropertyOptions[] = [];
+
+        try {
+          let page = 1;
+          const perPage = 200;
+          while (true) {
+            const response = await this.helpers.httpRequest({
+              method: 'GET',
+              url: buildUrl(baseUrl, '/api/collections'),
+              json: true,
+              headers,
+              qs: {
+                page,
+                perPage,
+              },
+            });
+
+            const items = (response?.items as IDataObject[]) ?? [];
+            for (const collection of items) {
+              const name = (collection.name as string) ?? (collection.id as string);
+              const id = collection.id as string | undefined;
+              options.push({
+                name: id ? `${name} (${id})` : name,
+                value: name,
+              });
+            }
+
+            if (items.length < perPage) break;
+            page += 1;
+            if (page > 20) break;
+          }
+
+          return options;
+        } catch (error) {
+          throw new NodeApiError(this.getNode(), error as unknown as JsonObject, {
+            message: 'Failed to load collections. Check credentials and permissions.',
+          });
+        }
+      },
+    },
+  };
+
   description: INodeTypeDescription = {
     displayName: 'PocketBase',
     name: 'pocketBase',
@@ -96,11 +207,15 @@ export class PocketBase implements INodeType {
 
       // Record parameters
       {
-        displayName: 'Collection',
+        displayName: 'Collection Name or ID',
         name: 'collection',
-        type: 'string',
+        type: 'options',
+        typeOptions: {
+          loadOptionsMethod: 'getCollections',
+        },
         default: '',
-        placeholder: 'users',
+        placeholder: 'Select or enter a collection',
+        allowArbitraryValues: true,
         required: true,
         displayOptions: {
           show: {
@@ -123,6 +238,76 @@ export class PocketBase implements INodeType {
         },
       },
       {
+        displayName: 'Parameters',
+        name: 'recordOptions',
+        type: 'collection',
+        placeholder: 'Select',
+        default: {},
+        displayOptions: {
+          show: {
+            resource: ['record'],
+            operation: ['create', 'update', 'get', 'delete'],
+          },
+        },
+        options: [
+          {
+            displayName: 'Coerce Types',
+            name: 'coerceTypes',
+            type: 'boolean',
+            default: true,
+          },
+          {
+            displayName: 'Include Raw Response',
+            name: 'includeRaw',
+            type: 'boolean',
+            default: false,
+          },
+          {
+            displayName: 'Include Debug Info',
+            name: 'includeDebug',
+            type: 'boolean',
+            default: false,
+          },
+        ],
+      },
+      {
+        displayName: 'Body Type',
+        name: 'bodyType',
+        type: 'options',
+        default: 'fields',
+        displayOptions: {
+          show: {
+            resource: ['record'],
+            operation: ['create', 'update'],
+          },
+        },
+        options: [
+          { name: 'Fields', value: 'fields' },
+          { name: 'JSON', value: 'json' },
+        ],
+      },
+      {
+        displayName: 'Fields',
+        name: 'fieldsUi',
+        type: 'assignmentCollection',
+        default: {
+          assignments: [],
+        },
+        typeOptions: {
+          assignment: {
+            defaultType: 'string',
+          },
+        },
+        displayOptions: {
+          show: {
+            resource: ['record'],
+            operation: ['create', 'update'],
+            bodyType: ['fields'],
+          },
+        },
+        description: 'Add fields to send to PocketBase.',
+      },
+      {
         displayName: 'Fields (JSON)',
         name: 'fields',
         type: 'json',
@@ -131,6 +316,7 @@ export class PocketBase implements INodeType {
           show: {
             resource: ['record'],
             operation: ['create', 'update'],
+            bodyType: ['json'],
           },
         },
         description: 'Fields to set. Example: { "title": "Hi", "done": true }',
@@ -278,39 +464,6 @@ export class PocketBase implements INodeType {
         ],
       },
       {
-        displayName: 'Options',
-        name: 'recordOptions',
-        type: 'collection',
-        placeholder: 'Add Option',
-        default: {},
-        displayOptions: {
-          show: {
-            resource: ['record'],
-            operation: ['create', 'update', 'get', 'delete'],
-          },
-        },
-        options: [
-          {
-            displayName: 'Coerce Types',
-            name: 'coerceTypes',
-            type: 'boolean',
-            default: true,
-          },
-          {
-            displayName: 'Include Raw Response',
-            name: 'includeRaw',
-            type: 'boolean',
-            default: false,
-          },
-          {
-            displayName: 'Include Debug Info',
-            name: 'includeDebug',
-            type: 'boolean',
-            default: false,
-          },
-        ],
-      },
-
       // Auth parameters
       {
         displayName: 'Admin Email',
@@ -517,7 +670,19 @@ export class PocketBase implements INodeType {
           const includeDebug = recordOptions.includeDebug === true;
 
           if (operation === 'create' || operation === 'update') {
-            const fieldsRaw = this.getNodeParameter('fields', i, {}) as IDataObject;
+            const bodyType = this.getNodeParameter('bodyType', i, 'json') as string;
+            let fieldsRaw: IDataObject;
+            if (bodyType === 'json') {
+              fieldsRaw = this.getNodeParameter('fields', i, {}) as IDataObject;
+            } else {
+              const fieldsUi = this.getNodeParameter('fieldsUi', i, {}) as IDataObject;
+              const mappedFields = mapFieldsUi(fieldsUi);
+              if (Object.keys(mappedFields).length === 0) {
+                fieldsRaw = this.getNodeParameter('fields', i, {}) as IDataObject;
+              } else {
+                fieldsRaw = mappedFields;
+              }
+            }
             const fields = normalizeFields(fieldsRaw, coerceTypes);
             const binaryFields = this.getNodeParameter('binaryFields', i, {}) as IDataObject;
             const binaryEntries = (binaryFields.binaryField as IDataObject[]) ?? [];

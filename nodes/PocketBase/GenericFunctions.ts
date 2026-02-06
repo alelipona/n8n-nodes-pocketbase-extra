@@ -18,11 +18,11 @@ const SENSITIVE_KEYS = new Set([
   'auth',
 ]);
 
-function normalizeBaseUrl(baseUrl: string): string {
+export function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/+$/, '');
 }
 
-function buildUrl(baseUrl: string, endpoint: string): string {
+export function buildUrl(baseUrl: string, endpoint: string): string {
   if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
     return endpoint;
   }
