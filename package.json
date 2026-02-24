@@ -1,11 +1,1 @@
-{
-  "name": "@alelipona/n8n-nodes-pocketbase-extra",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/alelipona/n8n-nodes-pocketbase-extra.git"
-  },
-  "homepage": "https://github.com/alelipona/n8n-nodes-pocketbase-extra#readme",
-  "publishConfig": {
-    "access": "public"
-  }
-}
+{\n  \"name\": \"@alelipona/n8n-nodes-pocketbase-extra\",\n  \"version\": \"1.0.0\",\n  \"description\": \"An n8n node for Pocketbase.\",\n  \"main\": \"dist/index.js\",\n  \"scripts\": {\n    \"test\": \"echo 'Error: no test specified' && exit 1\",\n    \"prepublishOnly\": \"echo Preparing for publishing...\"\n  },\n  \"author\": \"Alelipona\",\n  \"license\": \"MIT\",\n  \"homepage\": \"https://github.com/alelipona/n8n-nodes-pocketbase-extra#readme\",\n  \"repository\": {\n    \"type\": \"git\",\n    \"url\": \"git+https://github.com/alelipona/n8n-nodes-pocketbase-extra.git\"\n  },\n  \"publishConfig\": {\n    \"access\": \"public\"\n  }\n}
