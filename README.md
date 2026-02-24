@@ -1,131 +1,35 @@
-# n8n PocketBase Node (Custom)
+# n8n Nodes Pocketbase Extra
 
-A custom PocketBase node for n8n with better error reporting, automatic type coercion, and file upload support.
+## Installation via n8n Community Nodes UI
+
+To install the Pocketbase Extra nodes in n8n, use the n8n Community Nodes UI. This allows you to easily add and manage nodes from the n8n interface without needing to manually handle npm installation scripts.
+
+1. Open your n8n instance.
+2. Navigate to the Community Nodes section.
+3. Search for "Pocketbase Extra".
+4. Click on Install to add the nodes to your n8n environment.
+
+## npm Installation
+
+If you prefer to install via npm, you can do so with the following command:
+
+```bash
+npm install n8n-nodes-pocketbase-extra
+```
 
 ## Features
-- Record operations: create, update, delete, get, list.
-- Auth operations: admin login, collection login, token refresh.
-- Custom API calls: any endpoint and HTTP method.
-- Type coercion for booleans, numbers, JSON, and null.
-- Field-level error visibility for validation failures.
-- Optional raw response and debug metadata.
-- File upload support from n8n binary data.
+- Feature 1: Integrate with Pocketbase seamlessly.
+- Feature 2: Easily manage and utilize Pocketbase data within n8n workflows.
 
 ## Requirements
-- n8n `2.1.4+` (tested locally).
-- Node.js `18+` recommended.
-- PocketBase `0.36.1+` recommended.
+- n8n version 0.XX or higher.
+- Node.js version X.X or higher.
 
-## Install (Self-hosted n8n)
-This is a community node package. You can install it with the Raspberry Pi script or manually.
-
-### Raspberry Pi (systemd) install script
-1. Clone this repo on the Pi.
-2. Run the installer:
-```bash
-sudo ./install.sh
-```
-3. Ensure `N8N_CUSTOM_EXTENSIONS` is set to `/home/n8n/.n8n/custom` in your n8n service environment.
-4. Restart n8n.
-
-If your n8n service runs under a different user, set `N8N_USER` when running the script:
-```bash
-sudo N8N_USER=someuser ./install.sh
-```
-
-### Manual install
-1. Build the node.
-2. Configure n8n to load custom nodes.
-
-#### Build
-```bash
-npm install
-npm run build
-```
-
-#### Load in n8n (self-hosted)
-1. Copy or link this folder to your n8n custom nodes directory.
-2. Set the `N8N_CUSTOM_EXTENSIONS` environment variable to that directory.
-3. Restart n8n.
-
-Example:
-```bash
-export N8N_CUSTOM_EXTENSIONS=~/.n8n/custom
-```
-
-Place or symlink this repo inside that directory so the package is discoverable by n8n.
-
-## Credentials
-The node supports four credential modes:
-- Admin (email/password)
-- Collection (identity/password)
-- Token (Bearer token)
-- None
-
-## Record Operations
-### Create / Update
-- Select a collection from the auto-populated list (or type a name/ID).
-- `Body Type: Fields` uses a UI list of field/value entries.
-- `Body Type: JSON` accepts a raw object payload (objects/arrays accepted).
-- Enable `Coerce Types` to auto-convert strings like `"true"`, `"123"`, `"{...}"`, and `"null"`.
-
-### List with Filter
-Use `Options > Filter` to limit results, using PocketBase filter syntax.
-
-Examples:
-- `status = "active"`
-- `price >= 10 && price <= 50`
-- `title ~ "hello"`
-
-### File Uploads
-Add `Binary Fields` entries:
-- `Field Name`: PocketBase file field
-- `Binary Property`: n8n binary property (e.g., `data`)
-- `File Name`: optional override
-
-The node will send multipart form data automatically.
-
-## Auth Operations
-- Admin Login: returns token + admin data
-- Collection Login: returns token + record data
-- Refresh Token: supports admin or collection refresh
-
-## Debugging
-Enable:
-- `Include Raw Response` to add `__raw` to output
-- `Include Debug Info` to add `__debug` with sanitized request details
-
-When `continueOnFail` is enabled, errors are returned in the output with:
-- `error`, `code`, `statusCode`, `fieldErrors`, `raw`
+## Configuration
+- Configuration steps to set up your Pocketbase connections within n8n.
 
 ## Development
-### Build
-```bash
-npm run build
-```
+- Instructions for developers on how to contribute to the n8n Nodes Pocketbase Extra package. 
 
-### Tests
-```bash
-npm test
-```
+For detailed development notes, visit the CONTRIBUTING.md in the repository.
 
-### Lint / Format
-```bash
-npm run lint
-npm run format
-```
-
-## Project Structure
-- `nodes/PocketBase/PocketBase.node.ts`: node definition + execution
-- `nodes/PocketBase/GenericFunctions.ts`: shared helpers
-- `credentials/PocketBaseApi.credentials.ts`: credential schema
-- `nodes/PocketBase/pocketbase.svg`: icon
-- `ARCHITECTURE.md`: architecture overview
-
-## Troubleshooting
-- If you see `Binary property "data" is missing`, confirm the upstream node outputs binary data.
-- For 400 validation errors, check `fieldErrors` in the error output.
-- For auth issues, verify the credential type and base URL.
-
-## License
-MIT
