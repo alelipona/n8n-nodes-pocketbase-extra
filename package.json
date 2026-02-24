@@ -1,1 +1,57 @@
-{\n  \"name\": \"@alelipona/n8n-nodes-pocketbase-extra\",\n  \"version\": \"1.0.0\",\n  \"description\": \"An n8n node for Pocketbase.\",\n  \"main\": \"dist/index.js\",\n  \"scripts\": {\n    \"test\": \"echo 'Error: no test specified' && exit 1\",\n    \"prepublishOnly\": \"echo Preparing for publishing...\"\n  },\n  \"author\": \"Alelipona\",\n  \"license\": \"MIT\",\n  \"homepage\": \"https://github.com/alelipona/n8n-nodes-pocketbase-extra#readme\",\n  \"repository\": {\n    \"type\": \"git\",\n    \"url\": \"git+https://github.com/alelipona/n8n-nodes-pocketbase-extra.git\"\n  },\n  \"publishConfig\": {\n    \"access\": \"public\"\n  }\n}
+{
+  "name": "@alelipona/n8n-nodes-pocketbase-extra",
+  "version": "1.0.0",
+  "description": "Extended PocketBase integration node for n8n workflow automation platform",
+  "license": "MIT",
+  "author": {
+    "name": "alelipona",
+    "url": "https://github.com/alelipona"
+  },
+  "keywords": [
+    "n8n",
+    "n8n-community-node-package",
+    "pocketbase",
+    "automation",
+    "workflow"
+  ],
+  "homepage": "https://github.com/alelipona/n8n-nodes-pocketbase-extra#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alelipona/n8n-nodes-pocketbase-extra.git"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "n8n-node build",
+    "dev": "n8n-node dev",
+    "lint": "n8n-node lint",
+    "format": "n8n-node format",
+    "test": "jest",
+    "prepublishOnly": "npm run build && npm run lint"
+  },
+  "dependencies": {
+    "n8n-workflow": "^1.0.0"
+  },
+  "devDependencies": {
+    "@n8n/node-cli": "^0.5.0",
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.14.10",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.4.5"
+  },
+  "n8n": {
+    "nodes": [
+      "dist/nodes/PocketBase/PocketBase.node.js"
+    ],
+    "credentials": [
+      "dist/credentials/PocketBaseApi.credentials.js"
+    ]
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}
