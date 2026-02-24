@@ -1,35 +1,51 @@
-# n8n Nodes Pocketbase Extra
+# n8n Nodes for Pocketbase Extra
 
-## Installation via n8n Community Nodes UI
+## Installation Guide
 
-To install the Pocketbase Extra nodes in n8n, use the n8n Community Nodes UI. This allows you to easily add and manage nodes from the n8n interface without needing to manually handle npm installation scripts.
+### Requirements
+- [Node.js](https://nodejs.org/) (version 14 or higher)
+- [n8n](https://docs.n8n.io/getting-started/installation/) (version 0.150.0 or higher)
 
-1. Open your n8n instance.
-2. Navigate to the Community Nodes section.
-3. Search for "Pocketbase Extra".
-4. Click on Install to add the nodes to your n8n environment.
+### Manual Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/alelipona/n8n-nodes-pocketbase-extra.git
+   cd n8n-nodes-pocketbase-extra
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set up environment variables as required.
 
-## npm Installation
-
-If you prefer to install via npm, you can do so with the following command:
+### Docker Installation
+You can also run n8n with Pocketbase Nodes using Docker:
 
 ```bash
-npm install n8n-nodes-pocketbase-extra
+docker run -it --rm \
+  -p 5678:5678 \
+  -e N8N_BASIC_AUTH_ACTIVE=true \
+  -e N8N_BASIC_AUTH_USER=<USERNAME> \
+  -e N8N_BASIC_AUTH_PASSWORD=<PASSWORD> \
+  -e N8N_HOST=localhost \
+  -e N8N_PORT=5678 \
+  -e N8N_PROTOCOL=http \
+  -v ~/.n8n:/home/node/.n8n \
+  n8n-io/n8n
 ```
 
 ## Features
-- Feature 1: Integrate with Pocketbase seamlessly.
-- Feature 2: Easily manage and utilize Pocketbase data within n8n workflows.
+- Integration with Pocketbase services.
+- Support for CRUD operations on Pocketbase records.
+- Workflow automation capabilities with n8n.
 
-## Requirements
-- n8n version 0.XX or higher.
-- Node.js version X.X or higher.
+## Configuration Instructions
+To configure n8n Community Nodes UI for working with Pocketbase extra nodes:
 
-## Configuration
-- Configuration steps to set up your Pocketbase connections within n8n.
+1. **Add your Pocketbase API URL** in the environment variables:
+   ```bash
+   export POCKETBASE_API_URL='https://your-pocketbase-url.com'
+   ```
+2. Set any additional configuration settings as necessary for your environment.
 
-## Development
-- Instructions for developers on how to contribute to the n8n Nodes Pocketbase Extra package. 
-
-For detailed development notes, visit the CONTRIBUTING.md in the repository.
-
+3. Start n8n using either the manual or Docker installation methods above.
