@@ -1,0 +1,19 @@
+# .npmignore
+
+# Exclude source files
+src/
+
+# Exclude test files
+tests/
+
+# Exclude configuration files
+*.config.js
+*.test.js
+*.spec.js
+
+# Exclude documentation
+*.md
+
+# Other unnecessary files
+.DS_Store
+npm-debug.log
